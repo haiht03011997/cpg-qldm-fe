@@ -1,0 +1,9 @@
+.modal-filter-custom {
+    .ant-modal-content {
+        height: calc(100vh - 115px);;
+        overflow: auto;
+        .action {
+            gap: 10px;
+        }
+    }
+}

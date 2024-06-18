@@ -1,0 +1,12 @@
+.ant-input-group {
+  input {
+    min-height: 26px;
+    border-radius: 8px;
+  }
+
+  &-addon {
+    button {
+      min-height: 36px;
+    }
+  }
+}

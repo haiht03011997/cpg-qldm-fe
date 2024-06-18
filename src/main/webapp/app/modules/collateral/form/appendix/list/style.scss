@@ -1,0 +1,29 @@
+.form-list-view {
+  .action-add {
+    position: absolute;
+    right: 0;
+    top: -42px;
+    z-index: 4;
+  }
+  .account-number {
+    display: flex;
+    gap: 5px;
+  }
+  .action {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    &-edit {
+      color: var(--bs-blue);
+      cursor: pointer;
+    }
+    &-delete {
+      color: var(--bs-red);
+      cursor: pointer;
+    }
+    &-adjust {
+      cursor: pointer;
+    }
+  }
+}

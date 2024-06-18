@@ -1,0 +1,36 @@
+.by-company {
+  .table {
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .account-number {
+      display: flex;
+      gap: 5px;
+    }
+    .profit-percentage {
+      &-increase {
+        color: var(--bs-green);
+      }
+      &-decrease {
+        color: var(--bs-red);
+      }
+    }
+    .owning-percentage-over {
+      &-5 {
+        color: #358d37;
+      }
+      &-35 {
+        color: #05d332;
+      }
+      &-50 {
+        color: #a840d3;
+      }
+    }
+  }
+}
+.unit-price {
+  font-size: 12px;
+  font-weight: 400;
+}

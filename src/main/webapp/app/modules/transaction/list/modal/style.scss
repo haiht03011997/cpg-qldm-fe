@@ -1,0 +1,12 @@
+.file-upload-modal {
+  .result-item {
+    margin: 1rem;
+    cursor: pointer;
+    span {
+      text-decoration: underline;
+    }
+    img {
+      transform: rotate(-90deg);
+    }
+  }
+}

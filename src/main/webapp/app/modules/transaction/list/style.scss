@@ -1,0 +1,28 @@
+.transaction-view {
+    .account-number {
+        display: flex;
+        gap: 5px;
+        
+    }
+    .action {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        &-edit {
+            color: var(--bs-blue);
+            cursor: pointer;
+        }
+        &-delete {
+            color: var(--bs-red);
+            cursor: pointer;
+        }
+    }
+    .table {
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    }
+}

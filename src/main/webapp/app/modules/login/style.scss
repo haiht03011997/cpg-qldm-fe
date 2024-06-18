@@ -1,0 +1,14 @@
+.form-login {
+  .action-form {
+    gap: 10px;
+  }
+  .forgot {
+    cursor: pointer;
+    display: flex;
+    justify-content: right;
+    &:hover,
+    &:active {
+      color: var(--bs-blue);
+    }
+  }
+}

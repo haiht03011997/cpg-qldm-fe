@@ -1,0 +1,46 @@
+.multiple-form-horizontal-collateral {
+  .form-horizontal {
+    position: relative;
+    .ant-row {
+      gap: 4px;
+    }
+    &:not(:last-child) {
+      margin-top: 10px;
+      border-bottom: 1px solid var(--bs-gray-400);
+    }
+    .minus-circle-outlined {
+      position: absolute;
+      right: -15px;
+      top: 65px;
+      color: var(--bs-red);
+    }
+  }
+  .plus-circle-outlined {
+    color: var(--bs-blue);
+  }
+  .action-form-horizontal {
+    gap: 10px;
+  }
+}
+
+.form-mode-view-collateral {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  .form-body {
+    gap: 20px;
+    display: flex;
+    flex-direction: column;
+    .items {
+      justify-content: space-between;
+      align-items: center;
+    }
+    &:not(:last-child) {
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #d9d9d9;
+    }
+    &:not(:first-child) {
+      padding-top: 1rem;
+    }
+  }
+}

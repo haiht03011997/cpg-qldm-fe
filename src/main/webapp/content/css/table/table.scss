@@ -1,0 +1,36 @@
+@keyframes waring-out-of-date-color {
+  0% {
+    color: initial; // Màu chữ mặc định
+  }
+  50% {
+    color: #ff0000; // Màu chữ khi nhấp nháy
+  }
+  100% {
+    color: initial; // Màu chữ mặc định
+  }
+}
+
+.table {
+  overflow: auto;
+  .search {
+    .filter {
+      border: 1px solid #d9d9d9;
+      color: var(--bs-table-color-state, var(--bs-table-color-type, var(--bs-table-color)));
+      background-color: var(--bs-table-bg);
+      border-bottom-width: var(--bs-border-width);
+      box-shadow: inset 0 0 0 9999px var(--bs-table-bg-state, var(--bs-table-bg-type, var(--bs-table-accent-bg)));
+      &:hover,
+      &:focus,
+      &:active {
+        border-color: #4096ff;
+        color: var(--bs-table-color-state, var(--bs-table-color-type, var(--bs-table-color)));
+        background-color: var(--bs-table-bg);
+        border-bottom-width: var(--bs-border-width);
+      }
+    }
+  }
+  .out-of-date {
+    //
+    color: #ff0000;
+  }
+}
