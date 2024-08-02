@@ -1,6 +1,6 @@
 import { FilterTwoTone, PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Button, Input, Space, Tooltip } from 'antd';
+import { Button, Dropdown, Input, Space, Tooltip } from 'antd';
 import Title from 'antd/es/typography/Title';
 import { useAppDispatch, useAppSelector } from 'app/config/store';
 import ModalConfirmComponent from 'app/shared/component/modal/confirm';
@@ -69,6 +69,33 @@ const TransactionListComponent = () => {
       ),
     },
   ];
+
+  const actions = [
+    {
+      key: 1,
+      label: 'Thêm một bản ghi',
+    },
+    {
+      key: 2,
+      label: 'Thêm nhiều bản ghi',
+    },
+  ];
+
+  const onMenuClick = e => {
+    const { key } = e;
+    switch (key) {
+      case 1:
+        navigate('create', {
+          state: { filter: filters },
+        });
+        break;
+      default:
+        navigate('create/multiple', {
+          state: { filter: filters },
+        });
+        break;
+    }
+  };
 
   useEffect(() => {
     handleFetchData({ page: 1, limit, searchText, filters, sort });
@@ -181,17 +208,24 @@ const TransactionListComponent = () => {
             </Button>
             {roles.add && (
               <Space>
-                <Button
-                  className="filter"
-                  type="primary"
-                  onClick={() => {
-                    handleCreateTransaction();
-                  }}
-                  icon={<PlusOutlined />}
-                >
-                  Thêm mới
-                </Button>
+                <Dropdown className="primary" trigger={['click']} menu={{ items: actions, onClick: onMenuClick }} placement="bottomCenter">
+                  <Button size="large">
+                    <PlusOutlined /> Thêm mới
+                  </Button>
+                </Dropdown>
               </Space>
+              // <Space>
+              //   <Button
+              //     className="filter"
+              //     type="primary"
+              //     onClick={() => {
+              //       handleCreateTransaction();
+              //     }}
+              //     icon={<PlusOutlined />}
+              //   >
+              //     Thêm mới
+              //   </Button>
+              // </Space>
             )}
           </Space>
         </div>

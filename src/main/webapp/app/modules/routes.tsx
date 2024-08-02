@@ -43,6 +43,7 @@ export default () => {
         <Route path="transaction" element={<TransactionListComponent />} />
         <Route path="transaction/:id" element={<TransactionDetailFormComponent />} />
         <Route path="transaction/create" element={<TransactionDetailFormComponent />} />
+        <Route path="transaction/create/multiple" element={<TransactionFormComponent />} />
         {/* <Route path="transaction/create" element={<TransactionFormComponent />} /> */}
         <Route path="debt" element={<DebtListComponent />} />
         <Route path="debt/:id" element={<DebtDetailFormComponent />} />

@@ -14,24 +14,43 @@ import { formatVND, parseVND } from 'app/shared/util/money-utils';
 import { handlePopupScroll } from 'app/shared/util/select-utils';
 import dayjs from 'dayjs';
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './style.scss';
+import { fetchConfigTransactionType } from 'app/shared/reducers/config/config.reducer';
+import { fetchPortfolioByAccountId } from 'app/shared/reducers/portfolio/portfolio.reducer';
+import { ITEMS_PER_PAGE } from 'app/shared/util/pagination.constants';
 
 const TransactionFormComponent = () => {
   const [form] = Form.useForm();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { filter } = location.state || {};
   const { data: transactionType } = useAppSelector(state => state.transactionType);
   const { dataSecurities } = useAppSelector(state => state.company);
   const { data: stock, page, total: totalPagesStock } = useAppSelector(state => state.stock);
   const [isRequiredEndDate, setRequiredEndDate] = useState(false);
-  const [arrayTransactionType, setArrayTransactionType] = useState<IOptionProps[][]>([]);
   const [arrayStock, setArrayStock] = useState<IOptionProps[]>([]);
+  const [securitiesAccount, setSecuritiesAccount] = useState<IOptionProps[]>([]);
   const [currentPageStock, setCurrentPageStock] = useState(page);
+
+
+  const transactionTypeSelected = Form.useWatch('transactionTypeId', form);
+  const feeValue = Form.useWatch('fee', form);
+  const taxValue = Form.useWatch('tax', form);
+  const stockAccountIdValue = Form.useWatch('stockAccountId', form);
 
   useEffect(() => {
     innitData();
   }, []);
+
+  useEffect(() => {
+    if (transactionTypeSelected && stockAccountIdValue && transactionTypeSelected === TransactionType.SELL) {
+      fetchPortfolio(stockAccountIdValue);
+    } else {
+      handleFetchStock();
+    }
+  }, [transactionTypeSelected]);
 
   useEffect(() => {
     if (stock.length > 0) {
@@ -84,7 +103,9 @@ const TransactionFormComponent = () => {
 
   const handleClose = () => {
     form.resetFields();
-    navigate(-1);
+    navigate('/transaction', {
+      state: { filter },
+    });
   };
 
   const handlePopupScrollStock = e => {
@@ -95,32 +116,44 @@ const TransactionFormComponent = () => {
     }
   };
 
-  const handleChangeCTCK = async (id: number, name: number) => {
+  const handleChangeCTCK = (value: number) => {
     // tài khoản
-    const response = await dispatch(fetchAccountBySecuritiesCompany(id));
-    if (response && response.payload) {
-      const result = response.payload as any;
-      const data = [...arrayTransactionType];
-      (data[name] = result.data?.data?.map((item: any) => {
+    form.setFieldValue('stockAccountId', null);
+    fetchAccountSecurities(value);
+  };
+
+  const handleChangeTKCK = value => {
+    if (transactionTypeSelected && transactionTypeSelected !== TransactionType.BUY) {
+      fetchPortfolio(value);
+    } else {
+      handleFetchStock();
+    }
+  };
+
+  const fetchAccountSecurities = async value => {
+    const response = await dispatch(fetchAccountBySecuritiesCompany(value));
+    if (response.payload) {
+      const payload = response.payload as any;
+      const result = payload.data.data?.map((item: any) => {
         return {
-          label: item.accountNumber,
           value: item.accountId,
+          label: item.accountBeautyName,
         };
-      })),
-        setArrayTransactionType(data);
+      });
+      setSecuritiesAccount(result);
     }
   };
 
   const onValuesChange = (_, values) => {
     const updatedItems = values.items.map(item => {
       let total = 0;
-      if (item?.transactionTypeId) {
-        if (item.transactionTypeId !== TransactionType.BUY) {
-          total = (item.volume ?? 0) * (item.marketPrice ?? 0) * (1 + (item.fee ?? 0) / 100 + (item.tax ?? 0.15) / 100);
+      if (values?.transactionTypeId) {
+        if (values.transactionTypeId !== TransactionType.BUY) {
+          total = (item.volume ?? 0) * (item.marketPrice ?? 0) * (1 + (values.fee ?? 0) / 100 + (values.tax ?? 0.15) / 100);
         } else {
           total =
             (item.volume ?? 0) * (item.marketPrice ?? 0) -
-            (item.volume ?? 0) * (item.marketPrice ?? 0) * ((item.fee ?? 0) / 100 + (item.tax ?? 0.15) / 100);
+            (item.volume ?? 0) * (item.marketPrice ?? 0) * ((values.fee ?? 0) / 100 + (values.tax ?? 0.15) / 100);
         }
       }
       return {
@@ -138,6 +171,63 @@ const TransactionFormComponent = () => {
     dispatch(fetchStock({ searchText: value, pageSize: 1 }));
   };
 
+  const handleChangeTransactionType = async value => {
+    if (value !== TransactionType.SELL) value = TransactionType.BUY;
+    // get config fee,tax
+    const response = await dispatch(fetchConfigTransactionType(value));
+    if (response.payload) {
+      const result = response.payload as any;
+      if (result.data) {
+        result.data.map(x => {
+          form.setFieldValue(x.configKey, x.configValue);
+        });
+      }
+    }
+  };
+
+  const handleFetchStock = async (search = null, pagePayLoad = 1) => {
+    const response = await dispatch(fetchStock({ searchText: search, pageSize: pagePayLoad }));
+    if (response.payload) {
+      const result = response.payload as any;
+      if (result.data) {
+        const stocks = result.data?.data.map(x => {
+          return {
+            value: x.stockSymbol,
+            label: x.stockSymbol,
+          };
+        });
+        const cloneArr = [...arrayStock];
+        const pageCurrent = pagePayLoad ?? currentPageStock;
+        let newStocks = pageCurrent > 1 ? [...cloneArr] : [];
+        newStocks = newStocks.concat(stocks);
+        setArrayStock(newStocks);
+      }
+    }
+  };
+
+  const fetchPortfolio = async (idTkCK: number, pageNumber = 1) => {
+    const response = await dispatch(fetchPortfolioByAccountId({ page: pageNumber, limit: ITEMS_PER_PAGE, accountId: idTkCK }));
+    if (response.payload) {
+      const result = response.payload as any;
+      if (result.data) {
+        handleArrayStock(result.data?.data ?? [], pageNumber);
+      }
+    }
+  };
+
+  const handleArrayStock = (array: any[], payLoadPage: number) => {
+    const stocks = array.map(x => {
+      return {
+        value: x.stockSymbol,
+        label: x.stockSymbol,
+      };
+    });
+    const cloneArr = [...arrayStock];
+    let newStocks = payLoadPage > 1 ? [...cloneArr] : [];
+    newStocks = newStocks.concat(stocks);
+    setArrayStock(newStocks);
+  };
+
   return (
     <Form
       size="large"
@@ -149,100 +239,117 @@ const TransactionFormComponent = () => {
       onValuesChange={onValuesChange}
     >
       <Title level={3}>Thêm mới giao dịch hàng ngày</Title>
+      <Row>
+        <Col md={11}>
+          <Form.Item
+            label="CTCK"
+            name={'securitiesCompanyId'}
+            rules={[{ required: true, message: 'Hãy chọn công ty chứng khoán' }]}
+          >
+            <Select
+              size="large"
+              showSearch
+              filterOption={filterOption}
+              onChange={handleChangeCTCK}
+              options={dataSecurities}
+              placeholder="Chọn công ty chứng khoán"
+            />
+          </Form.Item>
+        </Col>
+        <Col md={1} />
+        <Col md={12}>
+          <Form.Item
+            label="Tài khoản"
+            rules={[{ required: true, message: 'Hãy chọn tài khoản' }]}
+            name={'stockAccountId'}
+          >
+            <Select onChange={e => {
+              handleChangeTKCK(e);
+            }} size="large" options={securitiesAccount} placeholder="Chọn tài khoản" />
+          </Form.Item>
+        </Col>
+      </Row>
+      <Row>
+        <Col md={11}>
+          <Form.Item
+            label="Loại GD"
+            rules={[{ required: true, message: 'Hãy chọn loại giao dịch' }]}
+            name={'transactionTypeId'}
+          >
+            <Select
+              size="large"
+              onChange={e => {
+                handleChangeTransactionType(e);
+              }}
+              filterOption={filterOption}
+              options={transactionType.map(item => {
+                return {
+                  label: item.transactionTypeName,
+                  value: item.transactionTypeId,
+                };
+              })}
+              placeholder="Chọn loại giao dịch"
+            />
+          </Form.Item>
+        </Col>
+        <Col md={1} />
+        <Col md={12}>
+          <Form.Item label="Ngày thực hiện" name={'date'}>
+            <DatePicker className="w-100" format={APP_LOCAL_DATE_FORMAT} defaultValue={dayjs()} />
+          </Form.Item>
+        </Col>
+      </Row>
+      <Row>
+        <Col md={11}>
+          <Form.Item label="Phí (%)" name={'fee'}>
+            <InputNumber className="w-100" placeholder="Nhập vào phí" defaultValue={0.0} min={0.0} />
+          </Form.Item>
+        </Col>
+        <Col md={1} />
+        <Col md={12}>
+          <Form.Item label="Thuế (%)" name={'tax'}>
+            <InputNumber className="w-100" placeholder="Nhập vào thuế" defaultValue={0.15} min={0.0} />
+          </Form.Item>
+        </Col>
+      </Row>
       <Form.List name="items">
         {(fields, { add, remove }) => (
           <>
             {fields.map(({ key, name, ...restField }) => (
               <div key={key} className="form-horizontal">
-                <Row>
-                  <Col md={2}>
-                    <Form.Item
-                      label="CTCK"
-                      name={[name, 'securitiesCompanyId']}
-                      rules={[{ required: true, message: 'Hãy chọn công ty chứng khoán' }]}
-                    >
-                      <Select
-                        size="large"
-                        showSearch
-                        filterOption={filterOption}
-                        onChange={e => {
-                          handleChangeCTCK(e, name);
-                        }}
-                        options={dataSecurities}
-                        placeholder="Chọn công ty chứng khoán"
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col md={2}>
-                    <Form.Item
-                      label="Tài khoản"
-                      rules={[{ required: true, message: 'Hãy chọn tài khoản' }]}
-                      name={[name, 'stockAccountId']}
-                    >
-                      <Select size="large" options={arrayTransactionType[name]} placeholder="Chọn tài khoản" />
-                    </Form.Item>
-                  </Col>
-                  <Col md={2}>
-                    <Form.Item
-                      label="Loại GD"
-                      rules={[{ required: true, message: 'Hãy chọn loại giao dịch' }]}
-                      name={[name, 'transactionTypeId']}
-                    >
-                      <Select
-                        size="large"
-                        options={transactionType.map(item => {
-                          return {
-                            label: item.transactionTypeName,
-                            value: item.transactionTypeId,
-                          };
-                        })}
-                        placeholder="Chọn loại giao dịch"
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col md={2}>
+                <Row className='w-100'>
+                  <Col md={4}>
                     <Form.Item label="Mã CP" rules={[{ required: true, message: 'Hãy chọn mã cổ phiếu' }]} name={[name, 'stockSymbol']}>
                       <Select
                         showSearch
                         onSearch={fetchDataOnSearch}
                         size="large"
+                        onClear={() => {
+                          fetchDataOnSearch('');
+                        }}
                         onPopupScroll={handlePopupScrollStock}
                         options={arrayStock}
                         placeholder="Chọn mã cổ phiếu"
                       />
                     </Form.Item>
                   </Col>
-                  <Col md={2}>
+                  <Col md={4}>
                     <Form.Item label="Khối lượng" name={[name, 'volume']}>
                       <InputNumber className="w-100" placeholder="Nhập số lượng" min={1} />
                     </Form.Item>
                   </Col>
-                  <Col md={2}>
+                  <Col md={4}>
                     <Form.Item label="Giá (ngđ)" name={[name, 'marketPrice']}>
                       <InputNumber formatter={formatVND} parser={parseVND} className="w-100" placeholder="Nhập vào giá" min={0.0} />
                     </Form.Item>
                   </Col>
-                  <Col md={2}>
-                    <Form.Item label="Phí (%)" name={[name, 'fee']}>
-                      <InputNumber className="w-100" placeholder="Nhập vào phí" defaultValue={0.0} min={0.0} />
-                    </Form.Item>
-                  </Col>
-                  <Col md={2}>
-                    <Form.Item label="Thuế (%)" name={[name, 'tax']}>
-                      <InputNumber className="w-100" placeholder="Nhập vào thuế" defaultValue={0.15} min={0.0} />
-                    </Form.Item>
-                  </Col>
-                  <Col md={2}>
+                  <Col md={4}>
                     <Form.Item label="Tổng giá trị (ngđ)" name={[name, 'totalPrice']}>
                       <InputNumber formatter={formatVND} parser={parseVND} className="w-100" readOnly />
                     </Form.Item>
                   </Col>
+
                   <Col md={2}>
-                    <Form.Item label="Ngày thực hiện" name={[name, 'date']}>
-                      <DatePicker className="w-100" format={APP_LOCAL_DATE_FORMAT} defaultValue={dayjs()} />
-                    </Form.Item>
-                  </Col>
-                  <Col md={1}>
                     <Form.Item label="HCCN" name={[name, 'isLimited']}>
                       <Checkbox
                         onChange={e => {
@@ -252,7 +359,7 @@ const TransactionFormComponent = () => {
                       Có
                     </Form.Item>
                   </Col>
-                  <Col md={2}>
+                  <Col md={5}>
                     <Form.Item
                       label="Ngày KT HCCN"
                       rules={[{ required: isRequiredEndDate, message: 'Hãy chọn ngày hết thúc HCCN' }]}
