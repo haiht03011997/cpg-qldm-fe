@@ -21,7 +21,7 @@ export type TransactionFormState = Readonly<typeof initialState>;
 
 export const createBulkTransaction = createAsyncThunk(
   'transaction/create_TransactionForm',
-  async (payload: ITransaction[]) => axios.post('api/createBulkTransaction', payload),
+  async (payload: any) => axios.post('api/createBulkTransaction', payload),
   {
     serializeError: serializeAxiosError,
   },

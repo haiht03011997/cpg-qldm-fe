@@ -383,7 +383,7 @@ const TransactionDetailFormComponent = () => {
           </Col>
           <Col md={1}></Col>
           <Col md={12}>
-            <Form.Item initialValue={dayjs()} label="Ngày thực hiện" name={'date'}>
+            <Form.Item rules={[{ required: true, message: 'Vui lòng chọn ngày thực hiện' }]} initialValue={dayjs()} label="Ngày thực hiện" name={'date'}>
               <DatePicker showTime className="w-100" placeholder="Chọn ngày thực hiện" format={APP_DATE_FORMAT} />
             </Form.Item>
           </Col>

@@ -8,7 +8,7 @@ import { IOptionProps } from 'app/shared/model/modal';
 import { fetchAccountBySecuritiesCompany } from 'app/shared/reducers/account/account.reducer';
 import { fetchSecuritiesCompany } from 'app/shared/reducers/company/company.reducer';
 import { fetchStock } from 'app/shared/reducers/stock/stock.reducer';
-import { createTransaction } from 'app/shared/reducers/transaction/form/transaction.reduces';
+import { createBulkTransaction, createTransaction } from 'app/shared/reducers/transaction/form/transaction.reduces';
 import { fetchTransactionType } from 'app/shared/reducers/transaction/type/transactionType.reducer';
 import { formatVND, parseVND } from 'app/shared/util/money-utils';
 import { handlePopupScroll } from 'app/shared/util/select-utils';
@@ -29,7 +29,7 @@ const TransactionFormComponent = () => {
   const { data: transactionType } = useAppSelector(state => state.transactionType);
   const { dataSecurities } = useAppSelector(state => state.company);
   const { data: stock, page, total: totalPagesStock } = useAppSelector(state => state.stock);
-  const [isRequiredEndDate, setRequiredEndDate] = useState(false);
+  const [requiredEndDate, setRequiredEndDate] = useState([]);
   const [arrayStock, setArrayStock] = useState<IOptionProps[]>([]);
   const [securitiesAccount, setSecuritiesAccount] = useState<IOptionProps[]>([]);
   const [currentPageStock, setCurrentPageStock] = useState(page);
@@ -70,34 +70,33 @@ const TransactionFormComponent = () => {
   };
 
   const handleSubmit = values => {
-    const payload = values.items?.map(item => {
-      const endDate = item.isLimited ? dayjs(item.limitedTill).format(DATE_FORMAT_PAYLOAD) : undefined;
-      return {
-        ...item,
-        fee: item.fee ?? 0,
-        tax: item.tax ?? 0.15,
-        totalPrice: item.totalPrice ?? 0,
-        date: dayjs(item.date).format(DATE_FORMAT_PAYLOAD),
-        limitedTill: endDate,
-        userId: 2,
-      };
-    });
-    dispatch(createTransaction(payload))
-      .then(
-        () => {
-          notification.success({
-            message: 'Tạo mới thành công',
-          });
-        },
-        error => {
-          notification.error({
-            message: 'Lỗi',
-            description: error.message,
-          });
-        },
-      )
-      .finally(() => {
-        handleClose();
+    const payload = {
+      ...values,
+      fee: values.fee ?? 0,
+      date: dayjs.utc(values.date).format(),
+      tax: values.tax ?? 0.15,
+      items: values.items?.map(item => {
+        const endDate = item.isLimited ? dayjs(item.limitedTill).format(DATE_FORMAT_PAYLOAD) : undefined;
+        return {
+          ...item,
+          totalPrice: item.totalPrice ?? 0,
+          limitedTill: endDate,
+          userId: 2,
+        };
+      })
+    }
+    dispatch(createBulkTransaction(payload))
+      .then(res => {
+        if (res && res.payload) {
+          handleClose();
+        }
+      })
+      .catch((error) => {
+        notification.error({
+          message: 'Lỗi',
+          description: error.message,
+        });
+        return;
       });
   };
 
@@ -228,6 +227,20 @@ const TransactionFormComponent = () => {
     setArrayStock(newStocks);
   };
 
+  const handleChangeHCCN = (e, name) => {
+    const isChecked = e.target.checked;
+    const cloneRequiredEndDate = [...requiredEndDate]
+    cloneRequiredEndDate[name] = isChecked
+    setRequiredEndDate(cloneRequiredEndDate)
+    if (!isChecked) {
+      form.setFieldsValue({
+        items: form.getFieldValue('items').map((item, index) =>
+          index === name ? { ...item, limitedTill: null } : item
+        ),
+      });
+    }
+  };
+
   return (
     <Form
       size="large"
@@ -294,8 +307,8 @@ const TransactionFormComponent = () => {
         </Col>
         <Col md={1} />
         <Col md={12}>
-          <Form.Item label="Ngày thực hiện" name={'date'}>
-            <DatePicker className="w-100" format={APP_LOCAL_DATE_FORMAT} defaultValue={dayjs()} />
+          <Form.Item rules={[{ required: true, message: 'Vui lòng chọn ngày thực hiện' }]} initialValue={dayjs()} label="Ngày thực hiện" name={'date'}>
+            <DatePicker className="w-100" format={APP_LOCAL_DATE_FORMAT} placeholder='Chọn ngày thực hiện' />
           </Form.Item>
         </Col>
       </Row>
@@ -351,23 +364,19 @@ const TransactionFormComponent = () => {
 
                   <Col md={2}>
                     <Form.Item label="HCCN" name={[name, 'isLimited']}>
-                      <Checkbox
-                        onChange={e => {
-                          setRequiredEndDate(e.target.checked);
-                        }}
-                      />
+                      <Checkbox onChange={(e) => handleChangeHCCN(e, name)} />
                       Có
                     </Form.Item>
                   </Col>
                   <Col md={5}>
                     <Form.Item
                       label="Ngày KT HCCN"
-                      rules={[{ required: isRequiredEndDate, message: 'Hãy chọn ngày hết thúc HCCN' }]}
+                      rules={[{ required: requiredEndDate[name], message: 'Hãy chọn ngày hết thúc HCCN' }]}
                       name={[name, 'limitedTill']}
                     >
                       <DatePicker
                         placeholder="Chọn ngày kết thúc"
-                        disabled={!isRequiredEndDate}
+                        disabled={!requiredEndDate[name]}
                         className="w-100"
                         format={APP_LOCAL_DATE_FORMAT}
                       />

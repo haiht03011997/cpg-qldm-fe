@@ -123,10 +123,10 @@ const TransactionListComponent = () => {
   };
 
   const handleChange = (pageNumber: number, pageSize: number, sorter: any) => {
-    const sortMapper = {
+    const sortMapper = Object.keys(sorter).length > 0 ? {
       Property: sorter.columnKey.charAt(0).toUpperCase() + sorter.columnKey.slice(1),
       Order: OrderByType[sorter.order],
-    };
+    } : undefined;
     setSort(sortMapper);
     const payload: IPayLoad = {
       page: pageNumber,
