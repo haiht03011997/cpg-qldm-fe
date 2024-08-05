@@ -81,6 +81,7 @@ const TransactionFormComponent = () => {
           ...item,
           totalPrice: item.totalPrice ?? 0,
           limitedTill: endDate,
+          marketPrice: item.marketPrice * 1000,
           userId: 2,
         };
       })
